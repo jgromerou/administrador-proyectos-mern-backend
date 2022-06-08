@@ -37,12 +37,12 @@ const obtenerProyecto = async (req, res) => {
   }
 
   //Obtener las tareas del Proyecto
-  const tareas = await Tarea.find().where('proyecto').equals(proyecto);
+  //const tareas = await Tarea.find().where('proyecto').equals(proyecto);
 
-  res.json({
-    proyecto,
-    tareas,
-  });
+  res.json(
+    proyecto
+    //tareas,
+  );
 };
 
 //editar un proyecto por su id
