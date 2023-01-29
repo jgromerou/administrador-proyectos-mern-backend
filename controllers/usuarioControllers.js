@@ -75,7 +75,9 @@ const confirmar = async (req, res) => {
     usuarioConfirmar.confirmado = true;
     usuarioConfirmar.token = '';
     await usuarioConfirmar.save();
-    res.json({ msg: 'Usuario Confirmado correctamente' });
+    res.json({
+      msg: 'Usuario Confirmado correctamente. Revisa tu Email para confirmar tu cuenta.',
+    });
   } catch (err) {
     console.log(err);
   }
@@ -90,6 +92,7 @@ const olvidePassword = async (req, res) => {
   }
 
   try {
+    //Si el usuario existe
     usuario.token = generarId();
     await usuario.save();
 
