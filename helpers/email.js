@@ -26,7 +26,7 @@ export const emailRegistro = async (datos) => {
   const info = await transport.sendMail({
     from: '"Administrador de Proyectos" <cuentas@c.com>',
     to: email,
-    subject: 'Comprueba tu cuenta',
+    subject: 'Administrador de Proyectos - Comprueba tu cuenta',
     text: 'Comprueba tu cuenta',
     html: `<p>Hola: ${nombre} Comprueba tu cuenta</p>
       <p>Tu cuenta ya está casi lista, solo debes comprobarla en el siguente enlace</p>
@@ -40,7 +40,7 @@ export const emailOlvidePassword = async (datos) => {
   const { email, nombre, token } = datos;
 
   const transport = nodemailer.createTransport({
-    host: process.env.EMAIL_USER,
+    host: process.env.EMAIL_HOST,
     port: process.env.EMAIL_PORT,
     auth: {
       user: process.env.EMAIL_USER,
