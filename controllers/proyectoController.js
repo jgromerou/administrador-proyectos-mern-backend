@@ -1,10 +1,21 @@
 import Proyecto from '../models/Proyecto.js';
 import Tarea from '../models/Tarea.js';
+import Usuario from '../models/Usuario.js';
 
 //obtener proyectos del usuario logueado
 const obtenerProyectos = async (req, res) => {
-  const proyectos = await Proyecto.find().where('creador').equals(req.usuario);
+  const proyectos = await Proyecto.find({
+    $or: [
+      { colaboradores: { $in: req.usuario } },
+      { creador: { $in: req.usuario } },
+    ],
+  }).select('-tareas');
   res.json(proyectos);
+  //esto es sin el or
+  // .where('creador')
+  // .equals(req.usuario)
+  //   .select('-tareas');
+  // res.json(proyectos);
 };
 
 //crear un nuevo proyecto
@@ -24,18 +35,29 @@ const nuevoProyecto = async (req, res) => {
 const obtenerProyecto = async (req, res) => {
   const { id } = req.params;
 
-  const proyecto = await Proyecto.findById(id.match(/^[0-9a-fA-F]{24}$/));
-  console.log(proyecto);
+  const proyecto = await Proyecto.findById(id.match(/^[0-9a-fA-F]{24}$/))
+    .populate({
+      path: 'tareas',
+      populate: { path: 'completado', select: 'nombre' },
+    })
+    .populate('colaboradores', 'nombre email');
+  // .populate('tareas')
+  // .populate('colaboradores', 'nombre email');
+
   if (!proyecto) {
-    const error = new Error('Proyecto no encuntrado.');
+    const error = new Error('Proyecto no encontrado.');
     return res.status(404).json({ msg: error.message });
   }
 
-  if (proyecto.creador.toString() !== req.usuario._id.toString()) {
+  if (
+    proyecto.creador.toString() !== req.usuario._id.toString() &&
+    !proyecto.colaboradores.some(
+      (colaborador) => colaborador._id.toString() === req.usuario._id.toString()
+    )
+  ) {
     const error = new Error('Acción no válida.');
     return res.status(401).json({ msg: error.message });
   }
-
   //Obtener las tareas del Proyecto
   //const tareas = await Tarea.find().where('proyecto').equals(proyecto);
 
@@ -97,9 +119,79 @@ const eliminarProyecto = async (req, res) => {
   }
 };
 
-const agregarColaborador = async (req, res) => {};
+const buscarColaborador = async (req, res) => {
+  const { email } = req.body;
 
-const eliminarColaborador = async (req, res) => {};
+  const usuario = await Usuario.findOne({ email }).select(
+    '-confirmado -createdAt -updatedAt -password -token -__v'
+  );
+
+  if (!usuario) {
+    const error = new Error('Usuario no encontrado');
+    return res.status(404).json({ msg: error.message });
+  } else {
+    res.json(usuario);
+  }
+};
+
+const agregarColaborador = async (req, res) => {
+  const proyecto = await Proyecto.findById(req.params.id);
+  if (!proyecto) {
+    const error = new Error('Proyecto no encontrado');
+    return res.status(404).json({ msg: error.message });
+  }
+
+  if (proyecto.creador.toString() !== req.usuario._id.toString()) {
+    const error = new Error('Acción no válida');
+    return res.status(404).json({ msg: error.message });
+  }
+
+  const { email } = req.body;
+
+  const usuario = await Usuario.findOne({ email }).select(
+    '-confirmado -createdAt -updatedAt -password -token -__v'
+  );
+
+  if (!usuario) {
+    const error = new Error('Usuario no encontrado');
+    return res.status(404).json({ msg: error.message });
+  }
+
+  //El colaborador no es admin del proyecto
+  if (proyecto.creador.toString() === usuario._id.toString()) {
+    const error = new Error('El creador del proyecto no puede ser colaborador');
+    return res.status(404).json({ msg: error.message });
+  }
+
+  //Revisar que no este ya agregado al proyecto
+  if (proyecto.colaboradores.includes(usuario._id)) {
+    const error = new Error('El usuario ya está en el Proyecto');
+    return res.status(404).json({ msg: error.message });
+  }
+
+  //si todo esta bien, se puede agregar
+  proyecto.colaboradores.push(usuario._id);
+  await proyecto.save();
+  res.json({ msg: 'Colaborador agregado correctamente!' });
+};
+
+const eliminarColaborador = async (req, res) => {
+  const proyecto = await Proyecto.findById(req.params.id);
+  if (!proyecto) {
+    const error = new Error('Proyecto no encontrado');
+    return res.status(404).json({ msg: error.message });
+  }
+
+  if (proyecto.creador.toString() !== req.usuario._id.toString()) {
+    const error = new Error('Acción no válida');
+    return res.status(404).json({ msg: error.message });
+  }
+
+  //si todo esta bien, se puede eliminar
+  proyecto.colaboradores.pull(req.body.id);
+  await proyecto.save();
+  res.json({ msg: 'Colaborador eliminado correctamente!' });
+};
 
 /* const obtenerTareas = async (req, res) => {
   const { id } = req.params;
@@ -123,6 +215,7 @@ export {
   obtenerProyecto,
   editarProyecto,
   eliminarProyecto,
+  buscarColaborador,
   agregarColaborador,
   eliminarColaborador,
 };
