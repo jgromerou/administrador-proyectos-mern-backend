@@ -59,9 +59,26 @@ io.on('connection', (socket) => {
   // socket.on('prueba', (nombre) => {
   //   console.log('Mi nombre es: ', nombre);
   // });
-  socket.on('abrir proyecto', (proyecto) => {
-    socket.join(proyecto);
+  socket.on('abrir proyecto', (proyectoId) => {
+    socket.join(proyectoId);
     //socket.emit('respuesta', { nombre: 'Juan' });
+  });
+
+  socket.on('abrir proyectos', (room) => {
+    socket.join(room);
+  });
+
+  //nuevo proyecto tiene que actualizar el listado de Proyecto
+  socket.on('nuevo proyecto', (proyecto) => {
+    socket.to('listarProyectos').emit('submit proyecto', proyecto);
+  });
+
+  socket.on('eliminar proyecto', (proyecto) => {
+    socket.to('listarProyectos').emit('submit proyecto', proyecto);
+  });
+
+  socket.on('editar proyecto', (proyecto) => {
+    socket.to('listarProyectos').emit('submit proyecto', proyecto);
   });
 
   socket.on('nueva tarea', (tarea) => {
